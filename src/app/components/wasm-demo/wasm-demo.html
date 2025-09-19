@@ -1,6 +1,6 @@
 <div class="wasm-demo-container">
   <header class="demo-header">
-    <h1>🚀 WebAssembly + Angular Demo</h1>
+    <h1>WebAssembly + Angular Demo</h1>
     <p>Interactive demonstration of WebAssembly integration with Angular</p>
   </header>
 
@@ -8,18 +8,28 @@
   <div class="status-card" [ngClass]="{'loading': loadingWasm, 'loaded': isWasmLoaded, 'error': !isWasmLoaded && !loadingWasm}">
     <h3>🔧 WebAssembly Status</h3>
     <div class="status-indicator">
-      <span *ngIf="loadingWasm" class="loading-spinner">⏳</span>
-      <span *ngIf="isWasmLoaded && !loadingWasm" class="success">✅ Loaded</span>
-      <span *ngIf="!isWasmLoaded && !loadingWasm" class="error">❌ Not Loaded</span>
+      @if (loadingWasm) {
+        <span class="loading-spinner">⏳</span>
+      }
+      @if (isWasmLoaded && !loadingWasm) {
+        <span class="success">✅ Loaded</span>
+      }
+      @if (!isWasmLoaded && !loadingWasm) {
+        <span class="error">❌ Not Loaded</span>
+      }
     </div>
-    <div *ngIf="isWasmLoaded" class="wasm-type">
-      <small>
-        Using: <strong>{{ wasmService.isUsingRealWasm() ? 'Real WebAssembly' : 'JavaScript Fallback' }}</strong>
-      </small>
-    </div>
-    <button *ngIf="!isWasmLoaded && !loadingWasm" (click)="loadWasm()" class="reload-btn">
-      🔄 Reload WASM
-    </button>
+    @if (isWasmLoaded) {
+      <div class="wasm-type">
+        <small>
+          Using: <strong>{{ wasmService.isUsingRealWasm() ? 'Real WebAssembly' : 'JavaScript Fallback' }}</strong>
+        </small>
+      </div>
+    }
+    @if (!isWasmLoaded && !loadingWasm) {
+      <button (click)="loadWasm()" class="reload-btn">
+        🔄 Reload WASM
+      </button>
+    }
   </div>
 
   <!-- Mathematical Operations -->
@@ -80,24 +90,30 @@
     <button (click)="runPerformanceTest()" 
             [disabled]="!isWasmLoaded || runningPerformanceTest" 
             class="performance-btn">
-      <span *ngIf="!runningPerformanceTest">🏃‍♂️ Run Performance Test</span>
-      <span *ngIf="runningPerformanceTest">⏳ Running...</span>
+      @if (!runningPerformanceTest) {
+        <span>🏃‍♂️ Run Performance Test</span>
+      }
+      @if (runningPerformanceTest) {
+        <span>⏳ Running...</span>
+      }
     </button>
 
-    <div *ngIf="performanceResults" class="performance-results">
-      <div class="performance-metric">
-        <span class="label">JavaScript Time:</span>
-        <span class="value">{{ performanceResults.jsTime }}ms</span>
+    @if (performanceResults) {
+      <div class="performance-results">
+        <div class="performance-metric">
+          <span class="label">JavaScript Time:</span>
+          <span class="value">{{ performanceResults.jsTime }}ms</span>
+        </div>
+        <div class="performance-metric">
+          <span class="label">WebAssembly Time:</span>
+          <span class="value">{{ performanceResults.wasmTime }}ms</span>
+        </div>
+        <div class="performance-metric highlight">
+          <span class="label">Speed Improvement:</span>
+          <span class="value">{{ performanceResults.speedup }}x</span>
+        </div>
       </div>
-      <div class="performance-metric">
-        <span class="label">WebAssembly Time:</span>
-        <span class="value">{{ performanceResults.wasmTime }}ms</span>
-      </div>
-      <div class="performance-metric highlight">
-        <span class="label">Speed Improvement:</span>
-        <span class="value">{{ performanceResults.speedup }}x</span>
-      </div>
-    </div>
+    }
   </div>
 
   <!-- Results Display -->
@@ -109,28 +125,34 @@
       </button>
     </div>
 
-    <div *ngIf="results.length === 0" class="no-results">
-      No calculations performed yet. Try the operations above!
-    </div>
-
-    <div *ngIf="results.length > 0" class="results-table">
-      <div class="table-header">
-        <div class="col-operation">Operation</div>
-        <div class="col-input">Input</div>
-        <div class="col-result">Result</div>
-        <div class="col-time">Time (ms)</div>
-        <div class="col-timestamp">Timestamp</div>
+    @if (results.length === 0) {
+      <div class="no-results">
+        No calculations performed yet. Try the operations above!
       </div>
+    }
 
-      <div *ngFor="let result of results" class="table-row" 
-           [ngClass]="{'system-result': result.operation === 'System'}">
-        <div class="col-operation">{{ result.operation }}</div>
-        <div class="col-input">{{ result.input }}</div>
-        <div class="col-result">{{ result.result }}</div>
-        <div class="col-time">{{ result.executionTime }}</div>
-        <div class="col-timestamp">{{ result.timestamp | date:'HH:mm:ss' }}</div>
+    @if (results.length > 0) {
+      <div class="results-table">
+        <div class="table-header">
+          <div class="col-operation">Operation</div>
+          <div class="col-input">Input</div>
+          <div class="col-result">Result</div>
+          <div class="col-time">Time (ms)</div>
+          <div class="col-timestamp">Timestamp</div>
+        </div>
+
+        @for (result of results; track result.timestamp) {
+          <div class="table-row" 
+               [ngClass]="{'system-result': result.operation === 'System'}">
+            <div class="col-operation">{{ result.operation }}</div>
+            <div class="col-input">{{ result.input }}</div>
+            <div class="col-result">{{ result.result }}</div>
+            <div class="col-time">{{ result.executionTime }}</div>
+            <div class="col-timestamp">{{ result.timestamp | date:'HH:mm:ss' }}</div>
+          </div>
+        }
       </div>
-    </div>
+    }
   </div>
 
 </div>

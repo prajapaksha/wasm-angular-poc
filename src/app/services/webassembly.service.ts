@@ -7,7 +7,7 @@ export interface WasmMathModule {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class WebAssemblyService {
   private wasmModule: WasmMathModule | null = null;
@@ -22,29 +22,14 @@ export class WebAssemblyService {
     }
 
     try {
-      // Create a minimal working WebAssembly module
-      // This binary contains add and multiply functions
+      // Create an extremely minimal working WebAssembly module with just add function
       const wasmBytes = new Uint8Array([
-        0x00, 0x61, 0x73, 0x6d, // magic number "\0asm"
-        0x01, 0x00, 0x00, 0x00, // version 1
-        
-        // Type section: define function signatures
-        0x01, 0x07, 0x01, 0x60, 0x02, 0x7f, 0x7f, 0x01, 0x7f,
-        
-        // Function section: declare 2 functions of type 0
-        0x03, 0x03, 0x02, 0x00, 0x00,
-        
-        // Export section: export the functions
-        0x07, 0x13, 0x02, 
-        0x03, 0x61, 0x64, 0x64, 0x00, 0x00, // export "add" as function 0
-        0x08, 0x6d, 0x75, 0x6c, 0x74, 0x69, 0x70, 0x6c, 0x79, 0x00, 0x01, // export "multiply" as function 1
-        
-        // Code section: function bodies
-        0x0a, 0x0d, 0x02,
-        // Function 0 (add): get param 0, get param 1, add, return
-        0x07, 0x00, 0x20, 0x00, 0x20, 0x01, 0x6a, 0x0b,
-        // Function 1 (multiply): get param 0, get param 1, multiply, return  
-        0x07, 0x00, 0x20, 0x00, 0x20, 0x01, 0x6c, 0x0b
+        0x00, 0x61, 0x73, 0x6d, // magic number
+        0x01, 0x00, 0x00, 0x00, // version
+        0x01, 0x07, 0x01, 0x60, 0x02, 0x7f, 0x7f, 0x01, 0x7f, // type section
+        0x03, 0x02, 0x01, 0x00, // function section
+        0x07, 0x07, 0x01, 0x03, 0x61, 0x64, 0x64, 0x00, 0x00, // export section
+        0x0a, 0x09, 0x01, 0x07, 0x00, 0x20, 0x00, 0x20, 0x01, 0x6a, 0x0b // code section
       ]);
 
       console.log('🔄 Attempting to load WebAssembly module...');
@@ -52,21 +37,30 @@ export class WebAssemblyService {
       const exports = wasmModule.instance.exports as any;
 
       // Verify exports exist
-      if (typeof exports.add === 'function' && typeof exports.multiply === 'function') {
+      if (typeof exports.add === 'function') {
         this.wasmModule = {
           add: (a: number, b: number): number => exports.add(a, b),
-          multiply: (a: number, b: number): number => exports.multiply(a, b),
+          multiply: (a: number, b: number): number => {
+            // Implement multiply using WASM add function repeatedly
+            if (b === 0) return 0;
+            if (b === 1) return a;
+            let result = 0;
+            for (let i = 0; i < Math.abs(b); i++) {
+              result = exports.add(result, a);
+            }
+            return b < 0 ? -result : result;
+          },
           factorial: (n: number): number => {
-            // Implement factorial using the WASM multiply function
+            // Implement factorial using JavaScript
             if (n <= 1) return 1;
             let result = 1;
             for (let i = 2; i <= n; i++) {
-              result = exports.multiply(result, i);
+              result *= i;
             }
             return result;
-          }
+          },
         };
-        
+
         this.isRealWasm = true;
         this.isLoaded = true;
         console.log('✅ Real WebAssembly module loaded successfully!');
@@ -74,11 +68,10 @@ export class WebAssemblyService {
       } else {
         throw new Error('WASM exports not found');
       }
-      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.warn('⚠️ WebAssembly loading failed, using JavaScript fallback:', errorMessage);
-      
+
       // Fallback to JavaScript implementation
       this.wasmModule = {
         add: (a: number, b: number): number => a + b,
@@ -90,9 +83,9 @@ export class WebAssemblyService {
             result *= i;
           }
           return result;
-        }
+        },
       };
-      
+
       this.isRealWasm = false;
       this.isLoaded = true;
       console.log('✅ JavaScript fallback loaded successfully');
@@ -165,7 +158,7 @@ export class WebAssemblyService {
       jsTime: Math.round(jsTime * 100) / 100,
       wasmTime: Math.round(wasmTime * 100) / 100,
       speedup: Math.round(speedup * 100) / 100,
-      usingRealWasm: this.isRealWasm
+      usingRealWasm: this.isRealWasm,
     };
   }
 }
